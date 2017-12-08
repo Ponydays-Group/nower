@@ -16,9 +16,11 @@ app.get('/', function(req, res){
 
 var users = {}
 var groups = {}
+let x = 0
 
 io.on('connection', async function(socket){
     console.log('a user connected', socket.handshake.query.token);
+    console.log(socket.handshake.query)
     console.log(config.url+"/server/getuserbykey?token="+config.token+"&key="+socket.handshake.query.token)
     let data = await (await fetch(config.url+"/server/getuserbykey?token="+config.token+"&key="+socket.handshake.query.token)).json()
     let iUserId = data.iUserId
@@ -26,6 +28,9 @@ io.on('connection', async function(socket){
         users[data.iUserId].push(socket)
     } else {
         users[data.iUserId] = [socket]
+    }
+    for (let i in users) {
+        console.log(i+": ", users[i].length)
     }
     socket.on('listenTopic', async function(data){
         console.log("LISTEN TOPIC", data)
@@ -42,6 +47,9 @@ io.on('connection', async function(socket){
     socket.on('disconnect', function(){
         console.log("user disconnected", data.iUserId)
         users[data.iUserId].pop(socket)
+        for (let i in users) {
+            console.log(i+": ", users[i].length)
+        }
     }.bind(this));
 });
 
@@ -89,7 +97,9 @@ function joinToGroup(group, sock) {
  * targetTitle: string
  */
 app.post('/comment', function(req, res){
+    x += 1
     let data = req.body
+    data.noticeId = x
     data.commentData = JSON.parse(data.commentData)
     // console.log(data)
 
@@ -114,7 +124,9 @@ app.post('/comment', function(req, res){
  * targetTitle: string
  */
 app.patch('/comment', function(req, res){
-    data = req.body
+    x += 1
+    let data = req.body
+    data.noticeId = x
     data.commentData = JSON.parse(data.commentData)
     console.log("PATCH:",data)
 
@@ -140,7 +152,9 @@ app.patch('/comment', function(req, res){
  * delete: bool
  */
 app.delete('/comment', function(req, res){
+    x += 1
     let data = req.body
+    data.noticeId = x
     console.log(req.body)
 
     if (data.targetType=="talk") {
@@ -154,6 +168,32 @@ app.delete('/comment', function(req, res){
 
     res.send("")
 });
+
+/* ADD VOTE
+ * senderId: int
+ * userId: int
+ * targetType: string
+ * targetId: int
+ * targetParentId: int,null
+ * targetParentType: string,null
+ * rating: int
+ */
+app.post("/vote", function(req, res){
+    x += 1
+    let data = req.body
+    data.noticeId = x
+    delete data.senderId
+    console.log(req.body)
+    let group = ""
+    if (data.targetParentId) {
+        group = data.targetParentType+"_"+data.targetParentId
+    } else {
+        group = data.targetType+"_"+data.targetId
+    }
+    sendToGroup(group, "new-vote", data)
+    sendToUser(data.userId, "vote-info", data)
+    res.send("")
+})
 
 /* ADD TOPIC
  * senderId: int
