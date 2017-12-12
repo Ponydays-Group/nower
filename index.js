@@ -24,14 +24,7 @@ io.on('connection', async function(socket){
     console.log(config.url+"/server/getuserbykey?token="+config.token+"&key="+socket.handshake.query.token)
     let data = await (await fetch(config.url+"/server/getuserbykey?token="+config.token+"&key="+socket.handshake.query.token)).json()
     let iUserId = data.iUserId
-    if (data.iUserId in users) {
-        users[data.iUserId].push(socket)
-    } else {
-        users[data.iUserId] = [socket]
-    }
-    for (let i in users) {
-        console.log(i+": ", users[i].length)
-    }
+    socket.join("user_"+iUserId)
     socket.on('listenTopic', async function(data){
         console.log("LISTEN TOPIC", data)
         let r = await fetch(config.url+"/server/hastopicaccess?token="+config.token+"&userId="+iUserId+"&topicId="+data.id)
@@ -42,25 +35,15 @@ io.on('connection', async function(socket){
             console.log("FALSE!")
             return false
         }
-        joinToGroup("topic_"+data.id, socket)
+        socket.join("topic_"+data.id)
     })
     socket.on('disconnect', function(){
         console.log("user disconnected", data.iUserId)
-        users[data.iUserId].pop(socket)
-        for (let i in users) {
-            console.log(i+": ", users[i].length)
-        }
     }.bind(this));
 });
 
 function sendToUser(id, event, data) {
-    if (id in users) {
-        for (let i =0; i<users[id].length; i++) {
-            users[id][i].emit(event, data)
-        }
-        return true
-    }
-    return false
+    io.to("user_"+id).emit(event, data)
 }
 
 function sendToUsers(ids, event,data) {
@@ -70,21 +53,11 @@ function sendToUsers(ids, event,data) {
 }
 
 function sendToGroup(group, event, data) {
-    if (!(group in groups)) {
-        console.log("RETURN")
-        return false
-    }
-    for (let i =0; i<groups[group].length; i++) {
-        groups[group][i].emit(event,data)
-    }
+    io.to(group).emit(event,data)
 }
 
 function joinToGroup(group, sock) {
-    if (!(group in groups)) {
-        groups[group] = [sock]
-    } else {
-        groups[group].push(sock)
-    }
+    sock.join(group)
 }
 
 /* ADD COMMENT
