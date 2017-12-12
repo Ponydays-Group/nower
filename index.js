@@ -198,6 +198,11 @@ app.delete('/topic', function(req, res){
     res.send("")
 });
 
+app.post('/site-update', function(req, res){
+    io.emit('site-update')
+    res.send("")
+})
+
 /* ADD TALK
  * senderId: int
  * userIds: array:int
