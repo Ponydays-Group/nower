@@ -23,10 +23,12 @@ io.on('connection', async function(socket){
     console.log(socket.handshake.query)
     console.log(config.url+"/server/getuserbykey?token="+config.token+"&key="+socket.handshake.query.token)
     let data = await (await fetch(config.url+"/server/getuserbykey?token="+config.token+"&key="+socket.handshake.query.token)).json()
-    let iUserId = data.iUserId
-    socket.join("user_"+iUserId)
+    let iUserId = null
+    if (data.iUserId) {
+        iUserId = data.iUserId
+        socket.join("user_" + iUserId)
+    }
     socket.on('listenTopic', async function(data){
-        console.log("LISTEN TOPIC", data)
         let r = await fetch(config.url+"/server/hastopicaccess?token="+config.token+"&userId="+iUserId+"&topicId="+data.id)
         console.log(r)
         let d = await r.json()
