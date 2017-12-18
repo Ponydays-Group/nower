@@ -13,10 +13,8 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.get('/', function(req, res){
     res.sendFile(__dirname + '/index.html');
 });
-
-var users = {}
-var groups = {}
 let x = 0
+let rtcUsers = {}
 
 io.on('connection', async function(socket){
     console.log('a user connected', socket.handshake.query.token);
@@ -24,6 +22,8 @@ io.on('connection', async function(socket){
     console.log(config.url+"/server/getuserbykey?token="+config.token+"&key="+socket.handshake.query.token)
     let data = await (await fetch(config.url+"/server/getuserbykey?token="+config.token+"&key="+socket.handshake.query.token)).json()
     let iUserId = null
+    let sUserAvatar = data.sUserAvatar
+    let user = {avatar: sUserAvatar, login: data.sUserLogin, id: data.iUserId, video: false, audio: false}
     if (data.iUserId) {
         iUserId = data.iUserId
         socket.join("user_" + iUserId)
@@ -39,9 +39,65 @@ io.on('connection', async function(socket){
         }
         socket.join("topic_"+data.id)
     })
+
+    socket.on('joinRTC',function(){
+        socket.join('webrtc')
+        console.log(rtcUsers,user)
+        rtcUsers[user.id] = user
+        console.log(rtcUsers,user)
+        io.sockets.emit('user joined', rtcUsers)
+    })
+    socket.on('leaveRTC',function(){
+        socket.leave('webrtc')
+        console.log(rtcUsers,user)
+        delete rtcUsers[user.id]
+        console.log(rtcUsers,user)
+        io.sockets.emit('user leaved', rtcUsers)
+    })
+    socket.on('getRTC',function(){
+        console.log(rtcUsers,user)
+        socket.emit('rtc users', rtcUsers)
+    })
+    socket.on('speaking', function(){
+        console.log('speaking', iUserId)
+        io.sockets.emit('speaking', iUserId)
+    })
+    socket.on('stopped speaking', function(){
+        console.log('stopped speaking', iUserId)
+        io.sockets.emit('stopped speaking', iUserId)
+    })
+    socket.on('mute', function(){
+        console.log('mute', iUserId)
+        rtcUsers[user.id] = user
+        rtcUsers[iUserId].audio = false
+        io.sockets.emit('mute', iUserId)
+    })
+    socket.on('unmute', function(){
+        console.log('unmute', iUserId)
+        rtcUsers[user.id] = user
+        rtcUsers[iUserId].audio = true
+        io.sockets.emit('unmute', iUserId)
+    })
+    socket.on('pause video', function(){
+        console.log('pause video', iUserId)
+        rtcUsers[iUserId].video = false
+        io.sockets.emit('pause video', iUserId)
+    })
+    socket.on('resume video', function(){
+        console.log('resume video', iUserId)
+        rtcUsers[user.id] = user
+        rtcUsers[iUserId].audio = true
+        io.sockets.emit('resume video', iUserId)
+    })
+
     socket.on('disconnect', function(){
+        console.log(rtcUsers,user)
+        delete rtcUsers[user.id]
+        console.log(rtcUsers,sUserAvatar)
+        io.sockets.emit('user leaved', rtcUsers)
         console.log("user disconnected", data.iUserId)
     }.bind(this));
+    console.log(rtcUsers, iUserId)
 });
 
 function sendToUser(id, event, data) {
