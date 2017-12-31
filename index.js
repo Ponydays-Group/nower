@@ -31,6 +31,7 @@ io.on('connection', async function(socket){
     socket.on('listenTopic', async function(data){
         let r = await fetch(config.url+"/server/hastopicaccess?token="+config.token+"&userId="+iUserId+"&topicId="+data.id)
         console.log(r)
+        console.log("LISTEN TOPIC")
         let d = await r.json()
         console.log(d, iUserId)
         if (!d.bAccess) {
@@ -38,6 +39,10 @@ io.on('connection', async function(socket){
             return false
         }
         socket.join("topic_"+data.id)
+    })
+    socket.on('listenOpenBlogs', function(data){
+        socket.join("openBlogListeners")
+        console.log("LISTEN OPEN BLOGS")
     })
 
     socket.on('joinRTC',function(){
@@ -142,6 +147,8 @@ app.post('/comment', function(req, res){
             sendToUser(data.userId, "reply-info", data)
         }
     }
+    if (data.targetParentType=="open")
+        sendToGroup("openBlogListeners", "openblog new comment", data)
 
     res.send("")
 });
