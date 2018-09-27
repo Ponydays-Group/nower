@@ -39,6 +39,17 @@ io.on('connection', async function(socket){
         }
         socket.join("topic_"+data.id)
     })
+    socket.on('listenTalk', async function(data){
+        let r = await fetch(config.url+"/server/hastalkaccess?token="+config.token+"&userId="+iUserId+"&talkId="+data.id)
+        console.log(r)
+        let d = await r.json()
+        console.log(d, iUserId)
+        if (!d.bAccess) {
+            console.log("FALSE!")
+            return false
+        }
+        socket.join("talk_"+data.id)
+    })
 
     socket.on('joinRTC',function(){
         socket.join('webrtc')
@@ -117,6 +128,17 @@ function sendToGroup(group, event, data) {
 function joinToGroup(group, sock) {
     sock.join(group)
 }
+
+app.post('/notification', function(req, res){
+    x += 1
+    let data = req.body
+    console.log(data)
+    data.noticeId = x
+    let group = data.target_type + "_" + data.target_id
+    sendToGroup(group, "notification", data);
+    sendToUser(data.user_id, "notification", data);
+    res.send("")
+});
 
 /* ADD COMMENT
  * userId: int
