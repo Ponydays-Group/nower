@@ -51,7 +51,10 @@ io.on('connection', async function(socket){
         }
         socket.join("talk_"+data.id)
     });
-
+    socket.on('listenOpenBlogs', function(data){
+        socket.join("openBlogListeners");
+        console.log("LISTEN OPEN BLOGS");
+    });
     socket.on('joinRTC',function(){
         socket.join('webrtc');
         console.log(rtcUsers,user);
