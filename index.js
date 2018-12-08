@@ -10,9 +10,6 @@ let config = JSON.parse(fs.readFileSync('conf.json', 'utf8'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.get('/', function(req, res){
-    res.sendFile(__dirname + '/index.html');
-});
 let x = 0;
 let rtcUsers = {};
 
