@@ -210,4 +210,8 @@ app.post('/notification', function (req, res) {
 
 http.listen(3000, function () {
     console.log('listening on *:3000');
+
+    if (isDebug) {
+        console.log('running in debug mode');
+    }
 });
